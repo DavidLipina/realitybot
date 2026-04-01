@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reality Bot · Ostrava</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f2f0ea;
+    --surface: #ffffff;
+    --surface2: #e8e4da;
+    --accent: #1a3a2a;
+    --accent2: #c8a96e;
+    --accent3: #3a6b8a;
+    --text: #1a1a1a;
+    --muted: #7a7a6a;
+    --border: #d5d0c5;
+    --tag-bg: #e8f0ec;
+    --danger: #c0392b;
+    --success: #27ae60;
+    --byt-color: #3a6b8a;
+    --pozemek-color: #6b8a3a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Instrument Sans', sans-serif; min-height: 100vh; display: flex; }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 270px;
+    background: var(--accent); color: #fff;
+    padding: 28px 20px; display: flex; flex-direction: column; z-index: 10; overflow-y: auto;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; letter-spacing: -1px; color: var(--accent2); margin-bottom: 2px; }
+  .logo-sub { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 28px; }
+
+  .sb-section { margin-bottom: 22px; }
+  .sb-label { font-size: 0.62rem; letter-spacing: 2.5px; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 8px; }
+
+  .chip-group { display: flex; flex-direction: column; gap: 6px; }
+  .chip {
+    display: flex; align-items: center; gap: 9px; cursor: pointer;
+    padding: 7px 10px; border-radius: 7px; font-size: 0.82rem;
+    color: rgba(255,255,255,0.65); transition: all 0.15s; user-select: none;
+  }
+  .chip:hover { background: rgba(255,255,255,0.07); }
+  .chip.active { background: rgba(200,169,110,0.16); color: var(--accent2); }
+  .chip .cb { width: 15px; height: 15px; border: 1.5px solid rgba(255,255,255,0.25); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .chip.active .cb { background: var(--accent2); border-color: var(--accent2); }
+  .chip.active .cb::after { content: '✓'; font-size: 9px; color: var(--accent); font-weight: 800; }
+
+  .lokalita-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .lok-chip {
+    font-size: 0.72rem; padding: 4px 10px; border-radius: 20px; cursor: pointer;
+    background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.1); transition: all 0.15s; user-select: none;
+  }
+  .lok-chip.active { background: rgba(200,169,110,0.2); color: var(--accent2); border-color: rgba(200,169,110,0.4); }
+
+  .timer-box {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 12px; margin-bottom: 20px;
+  }
+  .timer-last { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-bottom: 3px; }
+  .timer-next { font-size: 0.75rem; color: var(--accent2); font-weight: 600; }
+  .timer-bar-wrap { margin-top: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; height: 3px; }
+  .timer-bar { height: 3px; border-radius: 4px; background: var(--accent2); transition: width 0.5s; }
+
+  .sb-btns { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px; }
+  .btn-main {
+    width: 100%; background: var(--accent2); color: var(--accent); border: none; border-radius: 9px;
+    padding: 13px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.88rem;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .btn-main:hover { opacity: 0.88; }
+  .btn-main:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-sec {
+    width: 100%; background: transparent; color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 9px;
+    padding: 10px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.8rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-sec:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.8); }
+  .btn-sec:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* MAIN */
+  .main { margin-left: 270px; padding: 36px 36px 60px; min-height: 100vh; flex: 1; }
+  .main-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem; letter-spacing: -1px; color: var(--accent); }
+  .main-meta { font-size: 0.78rem; color: var(--muted); margin-top: 6px; margin-bottom: 24px; }
+
+  .search-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .search-input {
+    flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 11px;
+    padding: 11px 16px; font-family: 'Instrument Sans', sans-serif; font-size: 0.9rem;
+    color: var(--text); outline: none; transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent2); }
+  .search-input::placeholder { color: var(--muted); }
+  .btn-search-inline {
+    background: var(--accent); color: #fff; border: none; border-radius: 11px;
+    padding: 11px 20px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem;
+    cursor: pointer; white-space: nowrap; transition: opacity 0.2s;
+  }
+  .btn-search-inline:hover { opacity: 0.85; }
+  .btn-search-inline:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .status-bar { display: flex; align-items: center; gap: 9px; font-size: 0.78rem; color: var(--muted); margin-bottom: 20px; min-height: 24px; }
+  .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .status-bar.searching .sdot { background: var(--accent2); animation: pulse 1s ease-in-out infinite; }
+  .status-bar.searching { color: var(--accent); }
+  .status-bar.ok .sdot { background: var(--success); }
+  .status-bar.err { color: var(--danger); }
+  .status-bar.err .sdot { background: var(--danger); }
+  @keyframes pulse { 50% { transform: scale(1.5); opacity: 0.5; } }
+
+  /* MAIN TABS */
+  .main-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); padding-bottom: 0; }
+  .mtab {
+    padding: 10px 20px; border-radius: 8px 8px 0 0; border: none; background: none;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem;
+    color: var(--muted); cursor: pointer; transition: all 0.15s; border-bottom: 3px solid transparent; margin-bottom: -2px;
+  }
+  .mtab.active.byty { color: var(--byt-color); border-bottom-color: var(--byt-color); }
+  .mtab.active.pozemky { color: var(--pozemek-color); border-bottom-color: var(--pozemek-color); }
+  .mtab.active.historie { color: var(--accent2); border-bottom-color: var(--accent2); }
+  .mtab:hover:not(.active) { background: var(--surface2); }
+
+  .mpanel { display: none; }
+  .mpanel.active { display: block; animation: fadeUp 0.3s ease; }
+
+  /* INZERÁT CARDS */
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .inz-card {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 13px;
+    padding: 20px; transition: border-color 0.15s, box-shadow 0.15s; cursor: pointer;
+  }
+  .inz-card:hover { border-color: var(--accent2); box-shadow: 0 4px 20px rgba(0,0,0,0.07); }
+  .inz-card.byt { border-left: 4px solid var(--byt-color); }
+  .inz-card.pozemek { border-left: 4px solid var(--pozemek-color); }
+
+  .inz-typ { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .inz-nazev { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--accent); margin-bottom: 12px; line-height: 1.3; }
+  .inz-params { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .inz-param { background: var(--bg); border-radius: 7px; padding: 8px 10px; }
+  .inz-param-label { font-size: 0.62rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .inz-param-val { font-weight: 600; font-size: 0.88rem; color: var(--text); }
+  .inz-cena-m2 { background: var(--tag-bg); border-radius: 7px; padding: 8px 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .inz-cena-m2 .label { font-size: 0.7rem; color: var(--muted); }
+  .inz-cena-m2 .val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--accent); }
+  .inz-btns { display: flex; gap: 8px; }
+  .inz-btn {
+    flex: 1; padding: 8px; border-radius: 7px; border: 1.5px solid var(--border);
+    background: none; font-size: 0.78rem; font-family: 'Instrument Sans', sans-serif;
+    font-weight: 600; cursor: pointer; color: var(--muted); transition: all 0.15s; text-align: center; text-decoration: none; display: block;
+  }
+  .inz-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .inz-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .inz-btn.primary:hover { opacity: 0.85; }
+
+  /* CHART */
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 24px; margin-bottom: 20px; }
+  .chart-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--accent); margin-bottom: 16px; }
+  .chart-container { position: relative; height: 280px; }
+
+  /* EMPTY / LOADING */
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty .ei { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+  .empty h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; color: var(--accent); margin-bottom: 8px; }
+  .empty p { font-size: 0.83rem; max-width: 320px; margin: 0 auto; line-height: 1.7; }
+
+  .disclaimer { margin-top: 28px; padding: 12px 16px; background: #fff8ee; border: 1px solid #e8d5a0; border-radius: 9px; font-size: 0.75rem; color: #7a6020; line-height: 1.6; }
+
+  .prehled-block { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 24px; margin-bottom: 20px; }
+  .prehled-block h3 { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--accent); margin-bottom: 12px; font-size: 0.95rem; }
+  .prehled-text { font-size: 0.88rem; line-height: 1.8; white-space: pre-wrap; color: #2a2a2a; }
+
+  .warn { color: var(--danger); font-weight: 600; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 750px) {
+    .sidebar { position: relative; width: 100%; height: auto; }
+    .main { margin-left: 0; padding: 20px; }
+    body { flex-direction: column; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">Reality Bot</div>
+  <div class="logo-sub">Ostrava & okolí · v3</div>
+
+  <div class="sb-section">
+    <div class="sb-label">Typ nemovitosti</div>
+    <div class="chip-group">
+      <label class="chip active" onclick="toggleFilter(this,'byt')"><span class="cb"></span>🏠 Byty</label>
+      <label class="chip active" onclick="toggleFilter(this,'pozemek')"><span class="cb"></span>🌿 Pozemky</label>
+      <label class="chip" onclick="toggleFilter(this,'dum')"><span class="cb"></span>🏡 Rodinné domy</label>
+    </div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-label">Dispozice bytu</div>
+    <div class="chip-group">
+      <label class="chip active" onclick="toggleFilter(this,'1kk')"><span class="cb"></span>1+kk / 1+1</label>
+      <label class="chip active" onclick="toggleFilter(this,'2kk')"><span class="cb"></span>2+kk / 2+1</label>
+      <label class="chip" onclick="toggleFilter(this,'3kk')"><span class="cb"></span>3+kk / 3+1</label>
+      <label class="chip" onclick="toggleFilter(this,'4kk')"><span class="cb"></span>4+kk a větší</label>
+    </div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-label">Lokality</div>
+    <div class="lokalita-grid" id="lokalityGrid">
+      <span class="lok-chip active" onclick="toggleLok(this)">Poruba</span>
+      <span class="lok-chip active" onclick="toggleLok(this)">Klimkovice</span>
+      <span class="lok-chip active" onclick="toggleLok(this)">Zábřeh</span>
+      <span class="lok-chip active" onclick="toggleLok(this)">Sl. Ostrava</span>
+      <span class="lok-chip active" onclick="toggleLok(this)">Polanka</span>
+      <span class="lok-chip active" onclick="toggleLok(this)">Vřesina</span>
+      <span class="lok-chip" onclick="toggleLok(this)">Hlučín</span>
+      <span class="lok-chip" onclick="toggleLok(this)">Bohumín</span>
+      <span class="lok-chip" onclick="toggleLok(this)">Hrabová</span>
+    </div>
+  </div>
+
+  <div class="timer-box">
+    <div class="sb-label" style="margin-bottom:6px">⏱ Časovač</div>
+    <div class="timer-last" id="timerLast">Zatím nehledáno</div>
+    <div class="timer-next" id="timerNext"></div>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar" style="width:0%"></div></div>
+  </div>
+
+  <div class="sb-btns">
+    <button class="btn-main" id="btnMain" onclick="startSearch()">🔍 Prohledat weby</button>
+    <button class="btn-sec" id="btnHistorie" onclick="startHistorie()">📈 Načíst historii cen</button>
+    <button class="btn-sec" onclick="resetApiKey()" style="font-size:0.72rem;padding:8px">🔑 Změnit API klíč</button>
+    <div id="apiStatus" style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-align:center;margin-top:4px"></div>
+  </div>
+</div>
+
+<!-- API KEY MODAL -->
+<div id="apiModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:#1a3a2a;margin-bottom:8px">🔑 Zadej API klíč</div>
+    <div style="font-size:0.82rem;color:#7a7a6a;margin-bottom:20px;line-height:1.6">Klíč se uloží pouze do tvého prohlížeče a nikam se neodesílá. Začíná <strong>sk-ant-</strong></div>
+    <input id="apiInput" type="password" placeholder="sk-ant-api03-..." style="width:100%;padding:12px 14px;border:1.5px solid #d5d0c5;border-radius:9px;font-size:0.9rem;outline:none;margin-bottom:14px;font-family:'Instrument Sans',sans-serif;" />
+    <button onclick="saveApiKey()" style="width:100%;background:#1a3a2a;color:#fff;border:none;border-radius:9px;padding:13px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">Uložit a pokračovat</button>
+    <div style="font-size:0.72rem;color:#aaa;text-align:center;margin-top:10px">Klíč získáš na console.anthropic.com</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="main-title">Realitní průzkum</div>
+  <div class="main-meta">Ostrava & okolí · Koupě · Aktuální inzeráty + historie cen</div>
+
+  <div class="search-row">
+    <input class="search-input" id="queryInput" type="text" placeholder="Upřesnění... např. „cihlový byt", „stavební pozemek u lesa"" />
+    <button class="btn-search-inline" id="btnInline" onclick="startSearch()">Hledat →</button>
+  </div>
+
+  <div class="status-bar" id="statusBar">
+    <span class="sdot"></span>
+    <span id="statusText">Nastav filtry a klikni na „Prohledat weby"</span>
+  </div>
+
+  <div class="main-tabs" id="mainTabs" style="display:none">
+    <button class="mtab active byty" onclick="switchTab('byty',this)">🏠 Byty</button>
+    <button class="mtab pozemky" onclick="switchTab('pozemky',this)">🌿 Pozemky</button>
+    <button class="mtab historie" onclick="switchTab('historie',this)">📈 Historie cen</button>
+  </div>
+
+  <div class="mpanel active" id="panel-byty">
+    <div id="bytyContent">
+      <div class="empty"><div class="ei">🏠</div><h3>Byty</h3><p>Po vyhledávání se zde zobrazí nabídky bytů s parametry a cenou za m².</p></div>
+    </div>
+  </div>
+
+  <div class="mpanel" id="panel-pozemky">
+    <div id="pozemkyContent">
+      <div class="empty"><div class="ei">🌿</div><h3>Pozemky</h3><p>Po vyhledávání se zde zobrazí nabídky pozemků s parametry a cenou za m².</p></div>
+    </div>
+  </div>
+
+  <div class="mpanel" id="panel-historie">
+    <div id="historieContent">
+      <div class="empty"><div class="ei">📈</div><h3>Historie cen</h3><p>Klikni na „Načíst historii cen" pro zobrazení vývoje průměrné ceny za m² v posledních 6 měsících.</p></div>
+    </div>
+  </div>
+
+  <div class="disclaimer">⚠️ <strong>Upozornění:</strong> Bot vyhledává pomocí AI s přístupem na web. Vždy ověřuj inzeráty přímo na portálech. Ceny a dostupnost se mění. Historie cen je orientační ze statistik portálů a odborných zdrojů.</div>
+</div>
+
+<script>
+  function getApiKey() {
+    return localStorage.getItem('realitybot_apikey') || '';
+  }
+  function setApiKey(key) {
+    localStorage.setItem('realitybot_apikey', key);
+  }
+  function checkApiKey() {
+    if (!getApiKey()) showApiModal();
+    else document.getElementById('apiStatus').textContent = '🔑 API klíč: uložen';
+  }
+  function showApiModal() {
+    document.getElementById('apiModal').style.display = 'flex';
+  }
+  function saveApiKey() {
+    const val = document.getElementById('apiInput').value.trim();
+    if (!val.startsWith('sk-ant-')) { alert('Neplatný klíč – musí začínat sk-ant-'); return; }
+    setApiKey(val);
+    document.getElementById('apiModal').style.display = 'none';
+    document.getElementById('apiStatus').textContent = '🔑 API klíč: uložen';
+  }
+  function resetApiKey() {
+    localStorage.removeItem('realitybot_apikey');
+    document.getElementById('apiStatus').textContent = '🔑 API klíč: nezadán';
+    showApiModal();
+  }
+  const STORAGE_KEY = 'realitybot_v3';
+  const INTERVAL_DAYS = 3;
+
+  const filters = new Set(['byt','pozemek','1kk','2kk']);
+  const lokality = new Set(['Poruba','Klimkovice','Zábřeh','Sl. Ostrava','Polanka','Vřesina']);
+
+  let bytChart = null, pozemekChart = null;
+
+  // --- FILTERS ---
+  function toggleFilter(el, key) {
+    filters.has(key) ? (filters.delete(key), el.classList.remove('active')) : (filters.add(key), el.classList.add('active'));
+  }
+  function toggleLok(el) {
+    const name = el.textContent.trim();
+    lokality.has(name) ? (lokality.delete(name), el.classList.remove('active')) : (lokality.add(name), el.classList.add('active'));
+  }
+
+  // --- TIMER ---
+  function updateTimer() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const data = raw ? JSON.parse(raw) : null;
+    const lastEl = document.getElementById('timerLast');
+    const nextEl = document.getElementById('timerNext');
+    const barEl = document.getElementById('timerBar');
+    if (!data?.timestamp) { lastEl.textContent = 'Zatím nehledáno'; nextEl.textContent = ''; barEl.style.width = '0%'; return; }
+    const last = new Date(data.timestamp);
+    const next = new Date(last.getTime() + INTERVAL_DAYS * 86400000);
+    const now = new Date();
+    const pct = Math.min(100, Math.round(((now - last) / (next - last)) * 100));
+    lastEl.textContent = 'Poslední: ' + last.toLocaleDateString('cs-CZ') + ' ' + last.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'});
+    if (now >= next) { nextEl.textContent = '⚠️ Doporučeno obnovit'; barEl.style.background = '#e74c3c'; }
+    else { nextEl.textContent = 'Obnovit: ' + next.toLocaleDateString('cs-CZ'); barEl.style.background = ''; }
+    barEl.style.width = pct + '%';
+  }
+  updateTimer();
+
+  // --- STATUS ---
+  function setStatus(text, state='') {
+    const bar = document.getElementById('statusBar');
+    bar.className = 'status-bar ' + state;
+    document.getElementById('statusText').textContent = text;
+  }
+
+  // --- TABS ---
+  function switchTab(name, el) {
+    document.querySelectorAll('.mpanel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.mtab').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    el.classList.add('active');
+  }
+
+  // --- BUILD PROMPT ---
+  function getLokalityStr() { return [...lokality].join(', ') || 'Ostrava a okolí'; }
+
+  function buildSearchPrompt(extra) {
+    const disp = [];
+    if (filters.has('1kk')) disp.push('1+kk, 1+1');
+    if (filters.has('2kk')) disp.push('2+kk, 2+1');
+    if (filters.has('3kk')) disp.push('3+kk, 3+1');
+    if (filters.has('4kk')) disp.push('4+kk a větší');
+    const lokStr = getLokalityStr();
+
+    return `Prohledej DŮKLADNĚ tyto realitní portály: Sreality.cz, Bezrealitky.cz, Realitymorava.cz, Remax.cz, Mmreality.cz. Hledej aktuální inzeráty k PRODEJI v těchto lokalitách: ${lokStr}.
+
+${extra ? 'Upřesnění uživatele: ' + extra : ''}
+
+Hledám tyto typy:
+${filters.has('byt') ? '- BYTY, dispozice: ' + (disp.join(', ') || 'jakákoliv') : ''}
+${filters.has('pozemek') ? '- POZEMKY (stavební i jiné)' : ''}
+${filters.has('dum') ? '- RODINNÉ DOMY' : ''}
+
+DŮLEŽITÉ POKYNY:
+- Hledej co nejvíce inzerátů - minimum 8 bytů a 6 pozemků
+- U každého inzerátu uveď PŘESNOU adresu nebo ulici pokud je v inzerátu uvedena
+- Uveď SKUTEČNOU URL adresu inzerátu zkopírovanou přesně z portálu
+- Neověřené údaje označ: ⚠️ NEOVĚŘENO
+
+Odpověz přesně v tomto formátu:
+
+=== BYTY ===
+${filters.has('byt') ? `Pro každý byt použij tento blok (8-12 inzerátů):
+BYT_START
+NAZEV: [stručný popis bytu]
+ADRESA: [přesná adresa nebo ulice pokud uvedena, jinak neuvedeno]
+LOKALITA: [konkrétní část Ostravy nebo obce]
+CENA: [číslo v Kč bez mezer]
+PLOCHA: [číslo v m²]
+DISPOZICE: [1+kk / 2+kk atd.]
+STAV: [novostavba / po rekonstrukci / původní stav / neuvedeno]
+PORTAL: [přesný název portálu]
+URL: [přesná url inzerátu nebo nedostupné]
+BYT_END` : 'Byty nehledám.'}
+
+=== POZEMKY ===
+${filters.has('pozemek') ? `Pro každý pozemek použij tento blok (6-10 inzerátů):
+POZEMEK_START
+NAZEV: [stručný popis pozemku]
+ADRESA: [přesná adresa nebo ulice pokud uvedena, jinak neuvedeno]
+LOKALITA: [konkrétní část nebo obec]
+CENA: [číslo v Kč bez mezer]
+PLOCHA: [číslo v m²]
+TYP: [stavební / zemědělský / smíšený / jiný]
+INZENYRSKE_SITE: [ano / ne / neuvedeno]
+SVAH: [ano / ne / neuvedeno]
+PORTAL: [přesný název portálu]
+URL: [přesná url inzerátu nebo nedostupné]
+POZEMEK_END` : 'Pozemky nehledám.'}
+
+=== PŘEHLED ===
+Shrnutí: kolik inzerátů nalezeno na každém portálu, cenové rozpětí, průměr.
+
+Odpovídej česky.`;
+
+  function buildHistoriePrompt() {
+    const lokStr = getLokalityStr();
+    return `Zjisti historii průměrných cen nemovitostí za m² v Ostravě a okolí (${lokStr}) za posledních 6 měsíců (od přibližně října 2024 do března 2025).
+
+Hledej data na: Sreality.cz, Bezrealitky.cz, České statistiky (ČSÚ), realitní analýzy, cenové mapy.
+
+Odpověz přesně v tomto formátu:
+
+=== BYTY_HISTORIE ===
+Pro každý měsíc (říjen 2024 až březen 2025):
+MESIC: [název měsíce a rok]
+PRUMER_BYT: [průměrná cena Kč/m² nebo "nedostupné"]
+ZDROJ_BYT: [zdroj dat]
+
+=== POZEMKY_HISTORIE ===
+Pro každý měsíc:
+MESIC: [název měsíce a rok]
+PRUMER_POZEMEK: [průměrná cena Kč/m² nebo "nedostupné"]
+ZDROJ_POZEMEK: [zdroj dat]
+
+=== KOMENTAR ===
+Krátký komentář k vývoji cen - co zdražilo, co zlevnilo, trend.
+
+Pokud přesná data nejsou dostupná, jasně označ: ⚠️ NEOVĚŘENO a uveď odhadovaný rozsah.
+Odpovídej česky.`;
+  }
+
+  // --- PARSE ---
+  function parseBlocks(text, startTag, endTag) {
+    const results = [];
+    const regex = new RegExp(startTag + '([\\s\\S]*?)' + endTag, 'g');
+    let m;
+    while ((m = regex.exec(text)) !== null) {
+      const block = m[1];
+      const get = (key) => { const r = block.match(new RegExp(key + ':\\s*(.+)')); return r ? r[1].trim() : '—'; };
+      results.push({ raw: block, get });
+    }
+    return results;
+  }
+
+  function parseHistorie(text, tag) {
+    const section = text.split(tag)[1];
+    if (!section) return [];
+    const lines = section.split('\n');
+    const data = [];
+    let cur = {};
+    for (const line of lines) {
+      if (line.startsWith('MESIC:')) { if (cur.mesic) data.push(cur); cur = { mesic: line.replace('MESIC:','').trim() }; }
+      else if (line.startsWith('PRUMER_BYT:')) cur.hodnota = line.replace('PRUMER_BYT:','').trim();
+      else if (line.startsWith('PRUMER_POZEMEK:')) cur.hodnota = line.replace('PRUMER_POZEMEK:','').trim();
+      else if (line.startsWith('===')) break;
+    }
+    if (cur.mesic) data.push(cur);
+    return data;
+  }
+
+  // --- RENDER CARDS ---
+  function renderCard(params, type) {
+    const nazev = params.get('NAZEV');
+    const lokalita = params.get('LOKALITA');
+    const adresa = params.get('ADRESA');
+    const cenaStr = params.get('CENA');
+    const plocha = params.get('PLOCHA');
+    const url = params.get('URL');
+    const portal = params.get('PORTAL');
+
+    const cenaNum = parseInt(cenaStr.replace(/\D/g,''));
+    const plochaNum = parseInt(plocha.replace(/\D/g,''));
+    const cenaM2 = (cenaNum && plochaNum) ? Math.round(cenaNum / plochaNum).toLocaleString('cs-CZ') + ' Kč/m²' : '—';
+    const cenaFmt = cenaNum ? cenaNum.toLocaleString('cs-CZ') + ' Kč' : cenaStr;
+
+    const mapQuery = (adresa && adresa !== 'neuvedeno') ? adresa + ', ' + lokalita : lokalita + ', Ostrava';
+    const mapUrl = `https://www.google.com/maps/search/${encodeURIComponent(mapQuery)}`;
+    const hasUrl = url && url !== '—' && url !== 'nedostupné' && url !== 'nedostupne' && url.startsWith('http');
+
+    const adresaRow = (adresa && adresa !== 'neuvedeno' && adresa !== '—')
+      ? `<div class="inz-param" style="grid-column:1/-1"><div class="inz-param-label">📍 Adresa</div><div class="inz-param-val">${esc(adresa)}</div></div>` : '';
+
+    const extra = type === 'byt'
+      ? `<div class="inz-param"><div class="inz-param-label">Dispozice</div><div class="inz-param-val">${params.get('DISPOZICE')}</div></div>
+         <div class="inz-param"><div class="inz-param-label">Stav</div><div class="inz-param-val">${params.get('STAV')}</div></div>`
+      : `<div class="inz-param"><div class="inz-param-label">Typ</div><div class="inz-param-val">${params.get('TYP')}</div></div>
+         <div class="inz-param"><div class="inz-param-label">Inž. sítě</div><div class="inz-param-val">${params.get('INZENYRSKE_SITE')}</div></div>
+         <div class="inz-param"><div class="inz-param-label">Svah</div><div class="inz-param-val">${params.get('SVAH')}</div></div>`;
+
+    return `<div class="inz-card ${type}">
+      <div class="inz-typ">${type === 'byt' ? '🏠 BYT' : '🌿 POZEMEK'} · ${esc(portal)}</div>
+      <div class="inz-nazev">${esc(nazev)}</div>
+      <div class="inz-params">
+        ${adresaRow}
+        <div class="inz-param"><div class="inz-param-label">Lokalita</div><div class="inz-param-val">${esc(lokalita)}</div></div>
+        <div class="inz-param"><div class="inz-param-label">Plocha</div><div class="inz-param-val">${esc(plocha)}</div></div>
+        <div class="inz-param"><div class="inz-param-label">Cena</div><div class="inz-param-val">${esc(cenaFmt)}</div></div>
+        ${extra}
+      </div>
+      <div class="inz-cena-m2"><span class="label">Cena za m²</span><span class="val">${cenaM2}</span></div>
+      <div class="inz-btns">
+        <a href="${mapUrl}" target="_blank" class="inz-btn">🗺 Mapa</a>
+        ${hasUrl ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="inz-btn primary">→ Inzerát</a>` : '<span class="inz-btn" style="opacity:0.4;cursor:default">Odkaz N/A</span>'}
+      </div>
+    </div>`;
+  }
+
+  // --- RENDER CHART ---
+  function renderChart(canvasId, labels, values, label, color, existingChart) {
+    if (existingChart) existingChart.destroy();
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label,
+          data: values,
+          borderColor: color,
+          backgroundColor: color + '18',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: color,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 2.5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.parsed.y ? ctx.parsed.y.toLocaleString('cs-CZ') + ' Kč/m²' : 'Nedostupné'
+            }
+          }
+        },
+        scales: {
+          y: {
+            ticks: { callback: v => v.toLocaleString('cs-CZ') + ' Kč' },
+            grid: { color: '#e8e4da' }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // --- MAIN SEARCH ---
+  async function startSearch() {
+    const extra = document.getElementById('queryInput').value.trim();
+    setAllBtnsDisabled(true);
+    setStatus('Prohledávám realitní portály...', 'searching');
+
+    try {
+      const text = await callClaude(buildSearchPrompt(extra));
+
+      // Parse
+      const byty = parseBlocks(text, 'BYT_START', 'BYT_END');
+      const pozemky = parseBlocks(text, 'POZEMEK_START', 'POZEMEK_END');
+
+      // Přehled
+      const prehledMatch = text.split('=== PŘEHLED ===')[1];
+      const prehled = prehledMatch ? prehledMatch.trim() : '';
+
+      // Render byty
+      if (byty.length) {
+        document.getElementById('bytyContent').innerHTML =
+          `<div class="prehled-block"><h3>📊 Přehled trhu bytů</h3><div class="prehled-text">${esc(prehled)}</div></div>
+           <div class="cards-grid">${byty.map(b => renderCard(b, 'byt')).join('')}</div>`;
+      } else {
+        document.getElementById('bytyContent').innerHTML = `<div class="empty"><div class="ei">🏠</div><h3>Byty nenalezeny</h3><p>Zkus upravit filtry nebo upřesnění.</p></div>`;
+      }
+
+      // Render pozemky
+      if (pozemky.length) {
+        document.getElementById('pozemkyContent').innerHTML =
+          `<div class="cards-grid">${pozemky.map(p => renderCard(p, 'pozemek')).join('')}</div>`;
+      } else {
+        document.getElementById('pozemkyContent').innerHTML = `<div class="empty"><div class="ei">🌿</div><h3>Pozemky nenalezeny</h3><p>Zkus upravit filtry.</p></div>`;
+      }
+
+      // Uložit
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ timestamp: new Date().toISOString() }));
+      updateTimer();
+
+      document.getElementById('mainTabs').style.display = 'flex';
+      setStatus(`✓ Nalezeno: ${byty.length} bytů, ${pozemky.length} pozemků · ${new Date().toLocaleTimeString('cs-CZ')}`, 'ok');
+
+    } catch(e) {
+      setStatus('Chyba: ' + e.message, 'err');
+    } finally {
+      setAllBtnsDisabled(false);
+    }
+  }
+
+  // --- HISTORIE ---
+  async function startHistorie() {
+    setAllBtnsDisabled(true);
+    setStatus('Načítám historii cen za posledních 6 měsíců...', 'searching');
+    document.getElementById('mainTabs').style.display = 'flex';
+
+    // Switch to historie tab
+    document.querySelectorAll('.mpanel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.mtab').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-historie').classList.add('active');
+    document.querySelector('.mtab.historie').classList.add('active');
+
+    try {
+      const text = await callClaude(buildHistoriePrompt());
+
+      const bytData = parseHistorie(text, '=== BYTY_HISTORIE ===');
+      const pozemekData = parseHistorie(text, '=== POZEMKY_HISTORIE ===');
+      const komentar = text.split('=== KOMENTAR ===')[1]?.trim() || '';
+
+      const labels_b = bytData.map(d => d.mesic);
+      const vals_b = bytData.map(d => { const n = parseInt(d.hodnota?.replace(/\D/g,'')); return isNaN(n) ? null : n; });
+
+      const labels_p = pozemekData.map(d => d.mesic);
+      const vals_p = pozemekData.map(d => { const n = parseInt(d.hodnota?.replace(/\D/g,'')); return isNaN(n) ? null : n; });
+
+      document.getElementById('historieContent').innerHTML = `
+        ${komentar ? `<div class="prehled-block"><h3>📝 Komentář k vývoji cen</h3><div class="prehled-text">${esc(komentar)}</div></div>` : ''}
+        <div class="chart-wrap">
+          <div class="chart-title">🏠 Průměrná cena bytů Kč/m² · Ostrava a okolí</div>
+          <div class="chart-container"><canvas id="chartByt"></canvas></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">🌿 Průměrná cena pozemků Kč/m² · Ostrava a okolí</div>
+          <div class="chart-container"><canvas id="chartPozemek"></canvas></div>
+        </div>`;
+
+      bytChart = renderChart('chartByt', labels_b, vals_b, 'Byty Kč/m²', '#3a6b8a', bytChart);
+      pozemekChart = renderChart('chartPozemek', labels_p, vals_p, 'Pozemky Kč/m²', '#6b8a3a', pozemekChart);
+
+      setStatus('✓ Historie cen načtena · ' + new Date().toLocaleTimeString('cs-CZ'), 'ok');
+
+    } catch(e) {
+      setStatus('Chyba: ' + e.message, 'err');
+      document.getElementById('historieContent').innerHTML = `<div class="empty"><div class="ei">⚠️</div><h3>Chyba</h3><p>${esc(e.message)}</p></div>`;
+    } finally {
+      setAllBtnsDisabled(false);
+    }
+  }
+
+  // --- API CALL ---
+  async function callClaude(prompt) {
+    if (!getApiKey()) { showApiModal(); throw new Error('API klíč není zadán'); }
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'Jsi realitní asistent pro Českou republiku. Vždy používej web_search. Odpovídej česky. Přesně dodržuj formát který ti uživatel zadal. Neověřená data označ: ⚠️ NEOVĚŘENO.',
+        messages: [{ role: 'user', content: prompt }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content.map(i => i.type === 'text' ? i.text : '').filter(Boolean).join('\n');
+    if (!text) throw new Error('Prázdná odpověď');
+    return text;
+  }
+
+  function setAllBtnsDisabled(v) {
+    ['btnMain','btnHistorie','btnInline'].forEach(id => document.getElementById(id).disabled = v);
+  }
+
+  function esc(t) {
+    return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+
+  document.getElementById('queryInput').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
+  window.addEventListener('load', checkApiKey);
+</script>
+</body>
+</html>
