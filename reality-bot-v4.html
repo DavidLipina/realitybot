@@ -374,65 +374,19 @@
   // --- BUILD PROMPT ---
   function getLokalityStr() { return [...lokality].join(', ') || 'Ostrava a okolí'; }
 
-  function buildSearchPrompt(extra) {
+  function buildSearchPromptByty(extra) {
     const disp = [];
     if (filters.has('1kk')) disp.push('1+kk, 1+1');
     if (filters.has('2kk')) disp.push('2+kk, 2+1');
     if (filters.has('3kk')) disp.push('3+kk, 3+1');
     if (filters.has('4kk')) disp.push('4+kk a větší');
     const lokStr = getLokalityStr();
-
-    return `Prohledej DŮKLADNĚ tyto realitní portály: Sreality.cz, Bezrealitky.cz, Realitymorava.cz, Remax.cz, Mmreality.cz. Hledej aktuální inzeráty k PRODEJI v těchto lokalitách: ${lokStr}.
-
-${extra ? 'Upřesnění uživatele: ' + extra : ''}
-
-Hledám tyto typy:
-${filters.has('byt') ? '- BYTY, dispozice: ' + (disp.join(', ') || 'jakákoliv') : ''}
-${filters.has('pozemek') ? '- POZEMKY (stavební i jiné)' : ''}
-${filters.has('dum') ? '- RODINNÉ DOMY' : ''}
-
-DŮLEŽITÉ POKYNY:
-- Hledej co nejvíce inzerátů - minimum 8 bytů a 6 pozemků
-- U každého inzerátu uveď PŘESNOU adresu nebo ulici pokud je v inzerátu uvedena
-- Uveď SKUTEČNOU URL adresu inzerátu zkopírovanou přesně z portálu
-- Neověřené údaje označ: ⚠️ NEOVĚŘENO
-
-Odpověz přesně v tomto formátu:
-
-=== BYTY ===
-${filters.has('byt') ? `Pro každý byt použij tento blok (8-12 inzerátů):
-BYT_START
-NAZEV: [stručný popis bytu]
-ADRESA: [přesná adresa nebo ulice pokud uvedena, jinak neuvedeno]
-LOKALITA: [konkrétní část Ostravy nebo obce]
-CENA: [číslo v Kč bez mezer]
-PLOCHA: [číslo v m²]
-DISPOZICE: [1+kk / 2+kk atd.]
-STAV: [novostavba / po rekonstrukci / původní stav / neuvedeno]
-PORTAL: [přesný název portálu]
-URL: [přesná url inzerátu nebo nedostupné]
-BYT_END` : 'Byty nehledám.'}
-
-=== POZEMKY ===
-${filters.has('pozemek') ? `Pro každý pozemek použij tento blok (6-10 inzerátů):
-POZEMEK_START
-NAZEV: [stručný popis pozemku]
-ADRESA: [přesná adresa nebo ulice pokud uvedena, jinak neuvedeno]
-LOKALITA: [konkrétní část nebo obec]
-CENA: [číslo v Kč bez mezer]
-PLOCHA: [číslo v m²]
-TYP: [stavební / zemědělský / smíšený / jiný]
-INZENYRSKE_SITE: [ano / ne / neuvedeno]
-SVAH: [ano / ne / neuvedeno]
-PORTAL: [přesný název portálu]
-URL: [přesná url inzerátu nebo nedostupné]
-POZEMEK_END` : 'Pozemky nehledám.'}
-
-=== PŘEHLED ===
-Shrnutí: kolik inzerátů nalezeno na každém portálu, cenové rozpětí, průměr.
-
-Odpovídej česky.`;
-
+    return `Prohledej realitní portály: Sreality.cz, Bezrealitky.cz, Realitymorava.cz, Remax.cz. Hledej aktuální inzeráty BYTŮ k PRODEJI v lokalitách: ${lokStr}. ${extra ? 'Upřesnění: ' + extra : ''} Dispozice: ${disp.join(', ') || 'jakákoliv'}. Hledej 8-12 inzerátů. U každého inzerátu uveď přesnou adresu nebo ulici, skutečnou URL. Neověřené údaje označ: ⚠️ NEOVĚŘENO\n\nPro každý byt použij tento blok:\nBYT_START\nNAZEV: [popis]\nADRESA: [ulice nebo neuvedeno]\nLOKALITA: [část Ostravy]\nCENA: [Kč]\nPLOCHA: [m²]\nDISPOZICE: [1+kk atd.]\nSTAV: [novostavba/po rekonstrukci/původní stav/neuvedeno]\nPORTAL: [název portálu]\nURL: [url nebo nedostupné]\nBYT_END\n\n=== PŘEHLED ===\nShrnutí: kolik inzerátů, cenové rozpětí, průměr. Odpovídej česky.`;
+  }
+  function buildSearchPromptPozemky(extra) {
+    const lokStr = getLokalityStr();
+    return `Prohledej realitní portály: Sreality.cz, Bezrealitky.cz, Realitymorava.cz, Remax.cz. Hledej aktuální inzeráty POZEMKŮ k PRODEJI v lokalitách: ${lokStr}. ${extra ? 'Upřesnění: ' + extra : ''} Hledej 6-10 inzerátů. U každého uveď přesnou adresu nebo ulici, skutečnou URL. Neověřené údaje označ: ⚠️ NEOVĚŘENO\n\nPro každý pozemek použij tento blok:\nPOZEMEK_START\nNAZEV: [popis]\nADRESA: [ulice nebo neuvedeno]\nLOKALITA: [část nebo obec]\nCENA: [Kč]\nPLOCHA: [m²]\nTYP: [stavební/zemědělský/smíšený/jiný]\nINZENYRSKE_SITE: [ano/ne/neuvedeno]\nSVAH: [ano/ne/neuvedeno]\nPORTAL: [název portálu]\nURL: [url nebo nedostupné]\nPOZEMEK_END\n\nShrnutí: kolik inzerátů, cenové rozpětí. Odpovídej česky.`;
+  }
  } function buildHistoriePrompt() {
     const lokStr = getLokalityStr();
     return `Zjisti historii průměrných cen nemovitostí za m² v Ostravě a okolí (${lokStr}) za posledních 6 měsíců (od přibližně října 2024 do března 2025).
@@ -583,50 +537,44 @@ Odpovídej česky.`;
   async function startSearch() {
     const extra = document.getElementById('queryInput').value.trim();
     setAllBtnsDisabled(true);
-    setStatus('Prohledávám realitní portály...', 'searching');
-
+    let byty = [], pozemky = [], prehled = '';
     try {
-      const text = await callClaude(buildSearchPrompt(extra));
-
-      // Parse
-      const byty = parseBlocks(text, 'BYT_START', 'BYT_END');
-      const pozemky = parseBlocks(text, 'POZEMEK_START', 'POZEMEK_END');
-
-      // Přehled
-      const prehledMatch = text.split('=== PŘEHLED ===')[1];
-      const prehled = prehledMatch ? prehledMatch.trim() : '';
-
-      // Render byty
+      if (filters.has('byt')) {
+        setStatus('🏠 Hledám byty (1/2)...', 'searching');
+        const textByty = await callClaude(buildSearchPromptByty(extra));
+        byty = parseBlocks(textByty, 'BYT_START', 'BYT_END');
+        const prehledMatch = textByty.split('=== PŘEHLED ===')[1];
+        prehled = prehledMatch ? prehledMatch.trim() : '';
+      }
+      if (filters.has('pozemek')) {
+        if (filters.has('byt')) {
+          setStatus('⏳ Čekám 3s (rate limit)...', 'searching');
+          await new Promise(r => setTimeout(r, 3000));
+        }
+        setStatus('🌿 Hledám pozemky (2/2)...', 'searching');
+        const textPozemky = await callClaude(buildSearchPromptPozemky(extra));
+        pozemky = parseBlocks(textPozemky, 'POZEMEK_START', 'POZEMEK_END');
+      }
       if (byty.length) {
-        document.getElementById('bytyContent').innerHTML =
-          `<div class="prehled-block"><h3>📊 Přehled trhu bytů</h3><div class="prehled-text">${esc(prehled)}</div></div>
-           <div class="cards-grid">${byty.map(b => renderCard(b, 'byt')).join('')}</div>`;
-      } else {
+        document.getElementById('bytyContent').innerHTML = `<div class="prehled-block"><h3>📊 Přehled trhu bytů</h3><div class="prehled-text">${esc(prehled)}</div></div><div class="cards-grid">${byty.map(b => renderCard(b, 'byt')).join('')}</div>`;
+      } else if (filters.has('byt')) {
         document.getElementById('bytyContent').innerHTML = `<div class="empty"><div class="ei">🏠</div><h3>Byty nenalezeny</h3><p>Zkus upravit filtry nebo upřesnění.</p></div>`;
       }
-
-      // Render pozemky
       if (pozemky.length) {
-        document.getElementById('pozemkyContent').innerHTML =
-          `<div class="cards-grid">${pozemky.map(p => renderCard(p, 'pozemek')).join('')}</div>`;
-      } else {
+        document.getElementById('pozemkyContent').innerHTML = `<div class="cards-grid">${pozemky.map(p => renderCard(p, 'pozemek')).join('')}</div>`;
+      } else if (filters.has('pozemek')) {
         document.getElementById('pozemkyContent').innerHTML = `<div class="empty"><div class="ei">🌿</div><h3>Pozemky nenalezeny</h3><p>Zkus upravit filtry.</p></div>`;
       }
-
-      // Uložit
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ timestamp: new Date().toISOString() }));
       updateTimer();
-
       document.getElementById('mainTabs').style.display = 'flex';
       setStatus(`✓ Nalezeno: ${byty.length} bytů, ${pozemky.length} pozemků · ${new Date().toLocaleTimeString('cs-CZ')}`, 'ok');
-
     } catch(e) {
       setStatus('Chyba: ' + e.message, 'err');
     } finally {
       setAllBtnsDisabled(false);
     }
   }
-
   // --- HISTORIE ---
   async function startHistorie() {
     setAllBtnsDisabled(true);
