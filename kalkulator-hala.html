@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulátor: Koupit vs. pronajmout halu</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; background: #f5f5f3; color: #1a1a18; min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 13px; color: #888780; margin-bottom: 2rem; }
+  .section { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+  .section-title { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media(max-width:600px) { .g2,.g3 { grid-template-columns: 1fr; } }
+  .f { display: flex; flex-direction: column; gap: 4px; }
+  .f label { font-size: 12px; color: #5f5e5a; }
+  .f input { border: 0.5px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; transition: border-color 0.15s; }
+  .f input:focus { border-color: #185FA5; box-shadow: 0 0 0 2px rgba(24,95,165,0.15); }
+  .hint { font-size: 11px; color: #888780; margin-top: 2px; }
+  .note { font-size: 12px; color: #888780; line-height: 1.5; margin-top: 0.75rem; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 0.75rem; }
+  .card { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 1rem 1.25rem; }
+  .card.winner { border: 2px solid #3B6D11; }
+  .card.side { background: #f5f5f3; }
+  .card-lbl { font-size: 12px; color: #888780; margin-bottom: 2px; }
+  .card-val { font-size: 20px; font-weight: 500; }
+  .card-sub { font-size: 11px; color: #aaa; margin-top: 3px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 8px; font-size: 11px; font-weight: 500; margin-bottom: 8px; }
+  .b-ok { background: #EAF3DE; color: #27500A; }
+  .b-info { background: #E6F1FB; color: #0C447C; }
+  .b-warn { background: #FAEEDA; color: #633806; }
+  .b-purple { background: #EEEDFE; color: #3C3489; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.75rem; }
+  th { text-align: left; font-weight: 500; font-size: 12px; color: #888780; padding: 6px 8px; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
+  td { padding: 7px 8px; border-bottom: 0.5px solid rgba(0,0,0,0.07); }
+  tr:last-child td { border-bottom: none; }
+  .green { color: #3B6D11; }
+  .red { color: #A32D2D; }
+  .legend-row { display: flex; gap: 16px; margin-bottom: 8px; font-size: 12px; color: #888780; flex-wrap: wrap; }
+  .leg { display: flex; align-items: center; gap: 5px; }
+  .result-section { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+  #breakNote { font-size: 12px; color: #888780; margin-top: 0.5rem; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Koupit vs. pronajmout halu</h1>
+  <p class="subtitle">Investiční kalkulátor — porovnání měsíčních nákladů a kumulativního vývoje v čase</p>
+
+  <div class="section">
+    <div class="section-title">Koupě — nemovitost</div>
+    <div class="g2">
+      <div class="f"><label>Kupní cena stavby (tis. Kč)</label><input type="number" id="stavba" value="15000" step="100"><span class="hint" id="h-stavba">= 15 000 000 Kč</span></div>
+      <div class="f"><label>Kupní cena pozemku (tis. Kč)</label><input type="number" id="pozemek" value="3000" step="100"><span class="hint" id="h-pozemek">= 3 000 000 Kč</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Koupě — úvěr</div>
+    <div class="g3">
+      <div class="f"><label>Výše úvěru (tis. Kč)</label><input type="number" id="uver" value="14000" step="100"><span class="hint" id="h-uver">= 14 000 000 Kč</span></div>
+      <div class="f"><label>Úroková sazba (% p.a.)</label><input type="number" id="urok" value="5.5" step="0.1" min="0" max="20"></div>
+      <div class="f"><label>Délka úvěru (roky)</label><input type="number" id="delka" value="20" step="1" min="1" max="40"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Koupě — provozní náklady</div>
+    <div class="g2">
+      <div class="f"><label>Roční údržba (tis. Kč)</label><input type="number" id="udrzba" value="120" step="10"><span class="hint" id="h-udrzba">= 120 000 Kč</span></div>
+      <div class="f"><label>Podlahová plocha (m²)</label><input type="number" id="plocha" value="1000" step="10" min="1"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Pronájem — alternativa</div>
+    <div class="g2">
+      <div class="f"><label>Tržní nájemné (Kč/m²/měsíc)</label><input type="number" id="najem" value="95" step="5" min="1"></div>
+      <div class="f"><label>Roční růst nájemného (%)</label><input type="number" id="rustNajem" value="3" step="0.5" min="0" max="15"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Zhodnocení nemovitosti (orientační)</div>
+    <div class="g2">
+      <div class="f"><label>Roční růst hodnoty nemovitosti (%)</label><input type="number" id="rustNem" value="4" step="0.5" min="0" max="20"></div>
+      <div class="f"><label>Horizont grafu (roky)</label><input type="number" id="horizon" value="25" step="1" min="5" max="40"></div>
+    </div>
+    <p class="note">Průměrný růst komerčních nemovitostí v ČR byl historicky přibližně 3–5 % ročně — zadej vlastní odhad. Toto číslo nijak neovlivňuje porovnání nákladů, slouží jen jako samostatný ukazatel.</p>
+  </div>
+
+  <div class="result-section">
+    <div class="section-title">Srovnání — měsíční náklady</div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <div class="result-section">
+    <div class="section-title">Detailní přehled</div>
+    <table>
+      <thead><tr><th>Položka</th><th style="text-align:right">Koupě (Kč/měs)</th><th style="text-align:right">Pronájem (Kč/měs)</th><th style="text-align:right">Kč/m²/měs</th></tr></thead>
+      <tbody id="detail"></tbody>
+    </table>
+  </div>
+
+  <div class="result-section">
+    <div class="section-title">Kumulativní náklady v čase</div>
+    <div class="legend-row">
+      <span class="leg"><span style="width:14px;height:3px;background:#185FA5;display:inline-block;border-radius:2px;"></span>Koupě — výdaje</span>
+      <span class="leg"><span style="width:14px;height:0;display:inline-block;border-top:2px dashed #D85A30;"></span>Pronájem — výdaje</span>
+      <span class="leg"><span style="width:14px;height:0;display:inline-block;border-top:2px dotted #1D9E75;"></span>Hodnota nemovitosti (odhad)</span>
+    </div>
+    <div style="position:relative;width:100%;height:300px;">
+      <canvas id="chart" role="img" aria-label="Graf kumulativních nákladů koupě vs pronájmu a odhadovaná hodnota nemovitosti v čase.">Kumulativní náklady koupě vs pronájmu.</canvas>
+    </div>
+    <p id="breakNote"></p>
+  </div>
+
+  <div class="result-section">
+    <div class="section-title">Zhodnocení nemovitosti — bokem</div>
+    <div class="cards" id="cards-zhodn"></div>
+    <p class="note">Hodnoty jsou orientační odhad při konstantním ročním růstu. Skutečný vývoj závisí na lokaci, stavu trhu a dalších faktorech.</p>
+  </div>
+
+  <p style="font-size:11px;color:#aaa;text-align:center;margin-top:2rem;">Kalkulátor slouží pouze pro orientační porovnání. Není investičním poradenstvím.</p>
+</div>
+
+<script>
+let myChart = null;
+function fmtK(n){return Math.round(n).toLocaleString('cs-CZ');}
+function fmtM(v){if(Math.abs(v)>=1000000)return(v/1000000).toFixed(1).replace('.',',')+' M';if(Math.abs(v)>=1000)return(v/1000).toFixed(0)+' tis.';return Math.round(v).toString();}
+function updateHint(id,hid){const v=(+document.getElementById(id).value||0)*1000;document.getElementById(hid).textContent='= '+fmtK(v)+' Kč';}
+
+function calc(){
+  ['stavba','pozemek','uver','udrzba'].forEach(id=>{if(document.getElementById('h-'+id))updateHint(id,'h-'+id);});
+  const stavba=(+document.getElementById('stavba').value||0)*1000;
+  const pozemek=(+document.getElementById('pozemek').value||0)*1000;
+  const uver=(+document.getElementById('uver').value||0)*1000;
+  const urokPa=+document.getElementById('urok').value||0;
+  const delka=+document.getElementById('delka').value||1;
+  const udrzba=(+document.getElementById('udrzba').value||0)*1000;
+  const plocha=+document.getElementById('plocha').value||1;
+  const najem=+document.getElementById('najem').value||0;
+  const rustNajem=+document.getElementById('rustNajem').value||0;
+  const rustNem=+document.getElementById('rustNem').value||0;
+  const horizon=+document.getElementById('horizon').value||25;
+
+  const celkovaCena=stavba+pozemek;
+  const vlastniKapital=Math.max(0,celkovaCena-uver);
+  const r=urokPa/100/12;
+  const n=delka*12;
+  let splatka=0;
+  if(uver>0&&r>0){splatka=uver*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);}
+  else if(uver>0){splatka=uver/n;}
+
+  const mesUdrzba=udrzba/12;
+  const coupeTotal=splatka+mesUdrzba;
+  const najemTotal=najem*plocha;
+  const rozdil=najemTotal-coupeTotal;
+  const coupeWins=coupeTotal<najemTotal;
+
+  document.getElementById('cards').innerHTML=`
+    <div class="card ${coupeWins?'winner':''}">
+      <div class="badge ${coupeWins?'b-ok':'b-warn'}">${coupeWins?'Levnější varianta':'Dražší varianta'}</div>
+      <div class="card-lbl">Koupě — celkem/měsíc</div>
+      <div class="card-val">${fmtK(coupeTotal)} Kč</div>
+      <div class="card-sub">${(coupeTotal/plocha).toFixed(2).replace('.',',')} Kč/m²/měs</div>
+      <div class="card-sub" style="margin-top:5px">splátka ${fmtK(splatka)} + údržba ${fmtK(mesUdrzba)}</div>
+    </div>
+    <div class="card ${!coupeWins?'winner':''}">
+      <div class="badge ${!coupeWins?'b-ok':'b-info'}">${!coupeWins?'Levnější varianta':'Alternativa'}</div>
+      <div class="card-lbl">Pronájem — celkem/měsíc</div>
+      <div class="card-val">${fmtK(najemTotal)} Kč</div>
+      <div class="card-sub">${najem} Kč/m² × ${fmtK(plocha)} m²</div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Měsíční rozdíl</div>
+      <div class="card-val ${rozdil>=0?'green':'red'}">${rozdil>=0?'+':''}${fmtK(rozdil)} Kč</div>
+      <div class="card-sub">${rozdil>=0?'pronájem dražší':'koupě dražší'} o ${fmtK(Math.abs(rozdil))} Kč/měs</div>
+      <div class="card-sub" style="margin-top:4px">ročně ${fmtK(Math.abs(rozdil)*12)} Kč</div>
+    </div>
+  `;
+
+  document.getElementById('detail').innerHTML=[
+    ['Splátka úvěru',splatka,null],
+    ['Údržba (měsíčně)',mesUdrzba,null],
+    ['Celkové náklady',coupeTotal,najemTotal],
+    ['Náklad na m²',coupeTotal/plocha,najem],
+  ].map(([l,k,p])=>`<tr><td>${l}</td><td style="text-align:right">${fmtK(k)}</td><td style="text-align:right">${p!==null?fmtK(p):'—'}</td><td style="text-align:right">${(k/plocha).toFixed(2).replace('.',',')}</td></tr>`).join('');
+
+  const labels=[],koupeData=[],najemData=[],nemData=[];
+  let koupeKum=vlastniKapital,najemKum=vlastniKapital,breakEven=null;
+  for(let y=0;y<=horizon;y++){
+    labels.push(y===0?'Start':y+'r');
+    if(y>0){
+      koupeKum+=coupeTotal*12;
+      najemKum+=najem*plocha*12*Math.pow(1+rustNajem/100,y-1);
+    }
+    nemData.push(Math.round(celkovaCena*Math.pow(1+rustNem/100,y)));
+    koupeData.push(Math.round(koupeKum));
+    najemData.push(Math.round(najemKum));
+    if(breakEven===null&&y>0&&najemKum>=koupeKum)breakEven=y;
+  }
+
+  const noteEl=document.getElementById('breakNote');
+  if(breakEven!==null){noteEl.textContent=`Break-even: kumulativní náklady pronájmu překonají koupě přibližně po ${breakEven} letech. Graf zahrnuje vlastní kapitál (${fmtK(vlastniKapital)} Kč) jako počáteční výdaj.`;}
+  else if(coupeWins){noteEl.textContent=`Koupě je levnější po celé sledované období ${horizon} let — i přes počáteční vlastní kapitál ${fmtK(vlastniKapital)} Kč.`;}
+  else{noteEl.textContent=`Pronájem je levnější po celé sledované období ${horizon} let.`;}
+
+  if(myChart){myChart.destroy();myChart=null;}
+  myChart=new Chart(document.getElementById('chart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Koupě — výdaje',data:koupeData,borderColor:'#185FA5',borderWidth:2,pointRadius:2,fill:false,tension:0.1},
+      {label:'Pronájem — výdaje',data:najemData,borderColor:'#D85A30',borderWidth:2,borderDash:[6,4],pointRadius:2,fill:false,tension:0.1},
+      {label:'Hodnota nemovitosti',data:nemData,borderColor:'#1D9E75',borderWidth:2,borderDash:[2,4],pointRadius:0,fill:false,tension:0.1},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmtK(ctx.parsed.y)+' Kč'}}},
+      scales:{
+        x:{ticks:{autoSkip:true,maxTicksLimit:12,color:'#888780',font:{size:11}},grid:{color:'rgba(0,0,0,0.06)'}},
+        y:{ticks:{color:'#888780',font:{size:11},callback:v=>fmtM(v)},grid:{color:'rgba(0,0,0,0.06)'}}
+      }
+    }
+  });
+
+  const h10=celkovaCena*Math.pow(1+rustNem/100,10);
+  const h20=celkovaCena*Math.pow(1+rustNem/100,20);
+  const hH=celkovaCena*Math.pow(1+rustNem/100,horizon);
+  document.getElementById('cards-zhodn').innerHTML=`
+    <div class="card side"><div class="badge b-purple">Vstupní hodnota</div><div class="card-lbl">Pořizovací cena celkem</div><div class="card-val">${fmtK(celkovaCena)} Kč</div><div class="card-sub">stavba + pozemek</div></div>
+    <div class="card side"><div class="badge b-purple">Za 10 let (${rustNem} % p.a.)</div><div class="card-lbl">Odhadovaná hodnota</div><div class="card-val">${fmtK(h10)} Kč</div><div class="card-sub green">+${fmtK(h10-celkovaCena)} Kč</div></div>
+    <div class="card side"><div class="badge b-purple">Za 20 let (${rustNem} % p.a.)</div><div class="card-lbl">Odhadovaná hodnota</div><div class="card-val">${fmtK(h20)} Kč</div><div class="card-sub green">+${fmtK(h20-celkovaCena)} Kč</div></div>
+    <div class="card side"><div class="badge b-purple">Za ${horizon} let (${rustNem} % p.a.)</div><div class="card-lbl">Odhadovaná hodnota</div><div class="card-val">${fmtK(hH)} Kč</div><div class="card-sub green">+${fmtK(hH-celkovaCena)} Kč</div></div>
+  `;
+}
+
+document.querySelectorAll('input').forEach(el=>el.addEventListener('input',calc));
+calc();
+</script>
+</body>
+</html>
